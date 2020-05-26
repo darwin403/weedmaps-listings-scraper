@@ -29,7 +29,7 @@ MAX_RETRIES = 20  # max number of url fetch attempts
 
 # geopoint and fixed radius in which listings will be retrieved
 CENTER = {"lat": 34.04871368408203, "lng": -118.2420196533203}
-RADIUS = 45
+RADIUS = 70
 
 # expected types of a listing
 LISTING_TYPES = {

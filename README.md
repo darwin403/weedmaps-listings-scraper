@@ -27,6 +27,8 @@ Run the script:
 python3 scrape.py
 ```
 
+After the script is complete, an excel sheet will be created at `dumps/data.xlsx`
+
 # Features
 
 - For an arbitrary GeoPoint and Radius, at max `10,000` listings can be retrieved and their information stored.
@@ -59,6 +61,7 @@ python3 scrape.py
 
 # Notes
 
+- As of this writing a total of `2,104` listings were successfully scraped around California, LA in a `70mi` radius with center `34.04871368408203, -118.2420196533203`.
 - The listings search uses Elasticsearch, therefore a maximum of `10,000` listings can be retrieved.
 - Only `User-Agent` has to be set to cloak your bot.
 - Rate limiting per IP is implemented. Therefore a service like [Luminati.io](https://luminati.io/) is very essential to burst down requests.
