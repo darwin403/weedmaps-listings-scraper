@@ -31,14 +31,37 @@ After the script is complete, an excel sheet will be created at `dumps/data.xlsx
 
 # Features
 
-- For an arbitrary GeoPoint and Radius, at max `10,000` listings can be retrieved and their information stored.
+- You can choose to scrape listings by either `region` or a GeoPoint `pin`. Either of the options can be set by modifying the variable `GATHER_TYPE = "pin"` and `GATHER_TYPE= "region"` as below:
+
+  ```python
+  # scrape.py
+
+  GATHER_TYPE = "region"
+  ```
+
+  When `region` is chosen, only the variables `REGION` and `RADIUS` are considered.
+
+  When `pin` is chosen, only variables `CENTER` and `RADIUS` are considered.
+
+- The `REGION` variable is the region "slug" from which you would like to scrape listings. For example, in order to scrape for [all locations](https://api-g.weedmaps.com/wm/v1/regions/earth/subregions) one would be set `REGION = "earth"`. Similarly, for a more specific region, say [California](https://api-g.weedmaps.com/wm/v1/regions/california/subregions), one should set `REGION = "california"`
+
+  ```python
+  # scrape.py
+
+  REGION = "california"
+  RADIUS = 75
+  ```
+
+- The `CENTER` variable is a GeoPoint like object which takes in a latitude `lat` and longitude `lng`. All listings around this coordinate with a `RADIUS` would be scraped.
 
   ```python
   # scrape.py
 
   CENTER = {"lat": 34.04871368408203, "lng": -118.2420196533203}
-  RADIUS = 100
+  RADIUS = 75
   ```
+
+  For an arbitrary GeoPoint and Radius, at max `10,000` listings can be retrieved.
 
 - Threading is implemented. By default `20` requests are performed at time.
 
