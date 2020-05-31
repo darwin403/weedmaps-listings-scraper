@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor
+from math import ceil, sqrt
 
 import coloredlogs
 import requests
@@ -14,8 +15,8 @@ coloredlogs.install(
 
 # define rotating proxies
 PROXIES = {
-    'http': 'http://lum-customer-hl_233xze5-zone-static:g32kc5833f20t@zproxy.lum-superproxy.io:22225',
-    'https': 'http://lum-customer-hl_233xze5-zone-static:g32kc5833f20t@zproxy.lum-superproxy.io:22225',
+    'http': 'http://lum-customer-hl_58729ae5-zone-static:gksgc5xqf20t@zproxy.lum-superproxy.io:22225',
+    'https': 'http://lum-customer-hl_58729ae5-zone-static:gksgc5xqf20t@zproxy.lum-superproxy.io:22225',
 }
 
 # define request headers
@@ -27,9 +28,20 @@ PAGE_SIZE = 100  # max number of listings per page
 MAX_WORKERS = 20  # max number of threads used
 MAX_RETRIES = 20  # max number of url fetch attempts
 
-# geopoint and fixed radius in which listings will be retrieved
-CENTER = {"lat": 34.04871368408203, "lng": -118.2420196533203}
-RADIUS = 70
+# the method used listing to be aggregated
+# can be "region" or "pin"
+GATHER_TYPE = "region"
+
+# region to retrieve all coordinates of subregions and listings therein
+# can be any region: earth, california, 5-cities, alaska, germany
+# used only when GATHER_TYPE is set to "region"
+REGION = "california"
+
+# geopoint and fixed radius around which listings will be retrieved
+# used only when GATHER_TYPE is set to "pin"
+CENTER = {"lat": 34.04871368408203, "lng": -118.2420196533203}  # california
+RADIUS = 75  # default radius used by frontend
+
 
 # expected types of a listing
 LISTING_TYPES = {
@@ -95,6 +107,28 @@ LISTING_DEFAULT = {
     }
 }
 
+# expected response of a region
+REGION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "data": {
+            "type": "object",
+            "properties": {
+                "subregions": {
+                    "type": "array"
+                }
+            }
+        }
+    }
+}
+
+# default response of a region
+REGION_DEFAULT = {
+    "data": {
+        "subregions": []
+    }
+}
+
 # excel file headers
 COL_HEADERS = ('URL', 'About', 'Name', 'Thumbnail', 'Rating',
                'Reviews', 'Type', "Region", "Phone", "Open Hours", "Address", "City", "State", "ZIP Code", "Email", "Website", "Instagram", "Twitter", "Facebook", "Licenses")
@@ -104,17 +138,17 @@ COL_HEADERS = ('URL', 'About', 'Name', 'Thumbnail', 'Rating',
 def fetch(url, schema, default={}):
     failedAttempts = 0
 
-    while (failedAttempts <= MAX_RETRIES):
+    while (failedAttempts < MAX_RETRIES):
         try:
             r = requests.get(url, headers=REQUEST_HEADERS, proxies=PROXIES)
         except Exception as e:
-            logging.info('request failed: %s with error: %s' % (url, e))
+            logging.warning('request failed: %s with error: %s' % (url, e))
             failedAttempts += 1
             continue
 
         if (r.status_code != 200):
-            logging.info('request blocked (%s): %s. Retrying ...' %
-                         (r.status_code, url))
+            logging.warning('request blocked (%s): %s.' %
+                            (r.status_code, url))
             failedAttempts += 1
             continue
 
@@ -124,16 +158,46 @@ def fetch(url, schema, default={}):
             logging.info('request success (%s): %s' % (r.status_code, url))
             return json
         except Exception:
-            logging.info('bad response (%s): %s. Unexpected response received.' % (
+            logging.warning('bad response (%s): %s. Unexpected response received.' % (
                 r.status_code, url))
             failedAttempts += 1
             continue
 
+    if (failedAttempts >= MAX_RETRIES):
+        logging.error('request failed: %s, max retries exceeded' % url)
+
     return default
 
+
+# fetch one region
+def fetchOneRegion(region):
+    url = "https://api-g.weedmaps.com/wm/v1/regions/%s/subregions" % region
+    return fetch(url, REGION_SCHEMA, REGION_DEFAULT)
+
+
+# iteratively gather all subarea coordinates from a region
+def gatherAllCoordinates(region):
+    response = fetchOneRegion(region)
+    subregions = response["data"]["subregions"]
+    coordinates = []
+
+    if not subregions:
+        return coordinates
+
+    # add parent subregion coordinates
+    for subregion in subregions:
+        coordinates.append(
+            {"lat": subregion["latitude"], "lng": subregion["longitude"]})
+
+    # iterate over child subregions and add their coordinates
+    with PoolExecutor(max_workers=MAX_WORKERS) as executor:
+        for childCoordinates in executor.map(lambda s: gatherAllCoordinates(s["slug"]), subregions):
+            coordinates += childCoordinates
+
+    return coordinates
+
+
 # get listings for a particular page for a given center and radius.
-
-
 def getOneListings(center, radius, page):
     lat = center['lat']
     lng = center["lng"]
@@ -142,9 +206,8 @@ def getOneListings(center, radius, page):
 
     return fetch(url, LISTINGS_SCHEMA, LISTINGS_DEFAULT)
 
+
 # get all listings a given center and radius by iterating over available pages
-
-
 def getAllListings(center, radius):
     response = getOneListings(center, radius, 1)
 
@@ -172,9 +235,8 @@ def getAllListings(center, radius):
 
     return listings
 
+
 # get the url of each listing
-
-
 def gatherListingUrls(listings):
     listingsUrls = []
 
@@ -190,7 +252,9 @@ def gatherListingUrls(listings):
         listingUrl = "https://api-g.weedmaps.com/discovery/v1/listings/%s/%s" % (
             LISTING_TYPES[listingType], listingSlug)
 
-        listingsUrls.append(listingUrl)
+        # filter duplicates
+        if listingUrl not in listingsUrls:
+            listingsUrls.append(listingUrl)
 
     return listingsUrls
 
@@ -214,9 +278,17 @@ if __name__ == "__main__":
     ws.write_row(0, 0, COL_HEADERS)
     rowCount = 0
 
+    # gather listings and urls for given region
+    if GATHER_TYPE == "region":
+        listings = []
+        for center in gatherAllCoordinates(REGION):
+            listings += getAllListings(center, RADIUS)
+        listingsUrls = gatherListingUrls(listings)
+
     # gather listings and urls for given center and radius
-    listings = getAllListings(CENTER, RADIUS)
-    listingsUrls = gatherListingUrls(listings)
+    if GATHER_TYPE == "pin":
+        listings = getAllListings(CENTER, RADIUS)
+        listingsUrls = gatherListingUrls(listings)
 
     # retrieve all listing info
     try:
