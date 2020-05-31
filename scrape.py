@@ -15,8 +15,8 @@ coloredlogs.install(
 
 # define rotating proxies
 PROXIES = {
-    'http': 'http://lum-customer-hl_58729ae5-zone-static:gksgc5xqf20t@zproxy.lum-superproxy.io:22225',
-    'https': 'http://lum-customer-hl_58729ae5-zone-static:gksgc5xqf20t@zproxy.lum-superproxy.io:22225',
+    'http': 'http://lum-customer-hl_233xze5-zone-static:g32kc5833f20t@zproxy.lum-superproxy.io:22225',
+    'https': 'http://lum-customer-hl_233xze5-zone-static:g32kc5833f20t@zproxy.lum-superproxy.io:22225',
 }
 
 # define request headers
