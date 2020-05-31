@@ -1,0 +1,14 @@
+Project: https://www.freelancer.com/projects/python/Python-Scraper-for-retail-listing/details
+
+Title: Python Scraper for retail listing info
+
+Description:
+
+Need python based scraper that will allow me to scrape a website for specific content on every retail listing. Need data on all California locations ASAP(~2500) and then there is some time to develop the scraper to get data from the other regions.
+I am attaching a python file for reference that used to work, but is no longer functional. I am attaching a csv file showing the exact output required for each retail location scraped.
+I am also attaching a PNG file showing where this data gets rendered/presented on the website listing - and identify the corresponding column the values belong to.
+Here is a page for the shop index: https://weedmaps.com/listings/in/united-states/united-states/california
+Can limit with filter for only the following Business Type: Storefronts, Delivery, Recreational, Medical
+*** This site uses PerimeterX and possibly other anti scraping methods (rate limiting, etc.) that make it a bit more challenging than most sites. Need scraper to have ability to bypass this with minimal interaction, ideally zero interaction. Do not bid without understanding challenges of this.
+
+
