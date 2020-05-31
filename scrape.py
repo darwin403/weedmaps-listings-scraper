@@ -25,7 +25,7 @@ REQUEST_HEADERS = {
 }
 
 PAGE_SIZE = 100  # max number of listings per page
-MAX_WORKERS = 20  # max number of threads used
+MAX_WORKERS = 10  # max number of threads used
 MAX_RETRIES = 20  # max number of url fetch attempts
 
 # the method used listing to be aggregated
