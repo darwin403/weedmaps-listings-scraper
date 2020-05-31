@@ -294,6 +294,9 @@ if __name__ == "__main__":
     try:
         with PoolExecutor(max_workers=MAX_WORKERS) as executor:
             for listing in executor.map(getListing, listingsUrls):
+                if not listing:
+                    continue
+
                 # write listing info to row
                 rowCount += 1
                 ws.write_row(rowCount, 0, (
